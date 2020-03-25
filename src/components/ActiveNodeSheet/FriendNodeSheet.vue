@@ -12,17 +12,17 @@
     </v-avatar>
 
     <h2>{{activeNode.privateName}}</h2>
-    <p>{{activeNode.id}}</p>
+     <p>Aiming to see each other at least every {{Math.round(1/this.relation.decaySpeed)}} days</p>
 
     <v-sheet
       class="mx-auto mt-5 ma-2"
-      color="indigo lighten-5"
-      elevation="1"
-      max-width="500px"
+      elevation="0"
+      max-width="600px"
     >
       <v-sparkline
         :value="values"
-        line-width="2"
+        auto-draw
+        line-width="4"
         stroke-linecap="round"
         :gradient="['red','blue']"
         smooth="4"
@@ -33,7 +33,7 @@
         class="ma-2"
         color="blue darken-2"
         dark
-        @click="add(-1)"
+        @click="add(-0.1)"
       >🥺🥺 I miss you
 
       </v-btn>
@@ -42,7 +42,7 @@
         class="ma-2"
         color="red darken-2"
         dark
-        @click="add(1)"
+        @click="add(0.1)"
       >🥰🥰 We had a great time
       </v-btn>
 
@@ -54,11 +54,15 @@
 <script>
 export default {
   name: "FriendNodeSheet",
-  props: { activeNode: Object },
+  props: { activeNode: Object, userNode:Object, relations:Array},
   data() {
     return {
-      values: [0, 2, 5, 9, 5, 10, 3, 5, -4, -10, 1, 8, 2, 9, 0]
+      lastValue:0,
+      values:[]
     };
+  },
+  mounted(){
+    this.getValues();
   },
   methods: {
     add(value) {
@@ -69,6 +73,23 @@ export default {
         this.values[lastValueIndex] + value
       );
       // this.values.push(lastValue+value)
+    },
+    getValues(){
+      for(let change of this.relation.changes){
+        this.values.push(change.value);
+      }
+    }
+  },
+  computed:{
+    relation(){
+     return this.relations.find(x=>{
+       return (x.from === this.userNode.id && x.to === this.activeNode.id) || (x.from === this.activeNode.id && x.to === this.userNode.id)
+      });
+    },
+  },
+  watch:{
+    activeNode: function(){
+      this.getValues();
     }
   }
 };

@@ -12,8 +12,8 @@
     </v-avatar>
 
     <h2>{{activeNode.displayName}}</h2>
-      <p>{{activeNode.displayName}} is not your friend :(</p>
-  
+      <p><b>{{activeNode.displayName}} is not your friend yet :(</b></p>
+      <p>You can ask one of their friends to introduce you to them.</p>
 
   </div>
 </template>

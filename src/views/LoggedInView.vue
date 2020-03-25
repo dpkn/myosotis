@@ -1,13 +1,12 @@
 <template>
-  <div>
+
     <Visualization
       @set-active-node="$emit('set-active-node',$event)"
       :relations="relations"
       :nodes="nodes"
        :user-node="userNode"
     />
-    <h1>Logged In yeah</h1>
-  </div>
+
 </template>
 
 <script>

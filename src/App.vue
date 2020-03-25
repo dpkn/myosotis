@@ -2,7 +2,7 @@
   <v-app>
     <Header
       @logout="logOut"
-      @show-account="setActiveNode(user.uid)"
+      @show-account="setActiveNode(userNode.id)"
       :is-logged-in="isLoggedIn"
     />
 
@@ -23,13 +23,15 @@
         :relations="relations"
       />
     </v-content>
-
+ 
     <v-bottom-sheet
       inset
       v-model="nodeSheetIsOpen"
     >
       <ActiveNodeSheet
         :active-node="activeNode"
+        :user-node="userNode"
+        :relations="relations"
         :url="url"
       />
     </v-bottom-sheet>
@@ -74,7 +76,7 @@ export default {
   },
   data() {
     return {
-      userNode: { id: "", isUser: true },
+      userNode: { id: "", isUser: true, profileImage: ''},
       loginStep: 0,
       isLoggedIn: false,
       needToSetUpProfile: false,
@@ -111,6 +113,7 @@ export default {
   mounted() {
     // Check if user is using an login link
     if (firebase.auth().isSignInWithEmailLink(window.location.href)) {
+      this.loginStep = 0;
       this.logIn();
     }
 
@@ -138,6 +141,7 @@ export default {
 
       this.getUserData().then(user => {
         if(!this.needToSetUpProfile){
+          this.userNode.level = 0;
           this.getNodeImageUrl(user.id).then(url => {
             this.userNode.profileImage = url;
           });
@@ -146,7 +150,7 @@ export default {
 
       let directFriends = await this.getNetworkFromNode(this.userNode.id);
       for await(let node of directFriends.nodes) {
-        await this.getNetworkFromNode(node.id,1);
+        await this.getNetworkFromNode(node.id,2);
       }
       this.networkIsReady = true;
 
@@ -184,7 +188,11 @@ export default {
           window.localStorage.removeItem("emailForSignIn");
           // If user is here first time, prompt with set up window
           this.needToSetUpProfile = result.additionalUserInfo.isNewUser;
-          this.loginStep = 3;
+          if(this.needToSetUpProfile){
+            this.loginStep = 3;
+          }else{
+            this.loginStep = 0;
+          }
         })
         .catch(function(error) {
           console.error(error);
@@ -239,11 +247,73 @@ export default {
         })
         .then(() => {
           this.needToSetUpProfile = false;
-          this.getUserData();
+          
+            this.getNodeImageUrl(this.userNode.id).then(url => {
+              this.userNode.profileImage = url;
+            });
+
         })
         .catch(function(error) {
           console.error(error);
         });
+    },
+    fillData(){
+      function getRandomInt(min, max) {
+          min = Math.ceil(min);
+          max = Math.floor(max);
+          return Math.floor(Math.random() * (max - min + 1)) + min;
+      }
+      function getRandomFloat(min, max) {
+        let inti = getRandomInt(min*1000,max*1000)
+         return Math.round(inti)/1000;
+      }
+
+      for(let relation of this.relations){
+        let decaySpeed = getRandomFloat(0.08,0.01)
+        let days = getRandomInt(15,20);
+        let lastValue = 0.5;
+        let data=[];
+        for(let i=0; i < days; i++){
+          let extra = 0;
+          var chance = Math.random();
+          if (chance < 0.40 && lastValue < 0.7 && lastValue > 0.3){
+            let chance2 = Math.random();
+              if (chance2 < 0.8){
+                      extra = getRandomFloat(0.3,0.5)
+                }else{
+                  extra = getRandomFloat(0.1,0.2)
+                  extra = -extra;
+                }
+          }
+
+          let value = Math.round((lastValue-decaySpeed+extra) *1000)/1000
+          lastValue = value;
+          var date = new Date();
+          date.setDate(date.getDate() - days +i);
+          if(value > 1){
+            value =1;
+          }else if(value <0){
+            value = 0;
+          }
+          data.push({
+              date,
+              value
+          })
+          relation.a =1
+        }
+        console.log(decaySpeed,data)
+        // relation.hh ='d';
+        this.$db
+        .collection("relations")
+        .doc(relation.id)
+        .update({
+          data,
+          decaySpeed
+        })
+        .catch(function(error) {
+          console.error(error);
+        });
+      }
     },
     /**
      *  Set the active/selected node
@@ -278,10 +348,14 @@ export default {
       let friendRef = this.$db
         .collection("users")
         .doc(this.friendRequestNode.id);
-      this.$db.collection("relations").add({
+      let relation = {
         users: [userRef, friendRef],
         strength: 1
-      });
+      }
+      this.$db.collection("relations").add(relation);
+      this.nodes.push(this.friendRequestNode);
+      this.friendRequestNode.level = 1;
+      this.getNetworkFromNode(this.friendRequestNode.id,2);
       this.friendRequestNode = {};
       this.friendRequestDialog = false;
     },
@@ -340,11 +414,13 @@ export default {
             from = relationData.users[1].id;
             to = relationData.users[0].id;
           }
+    
 
           let relation = {
             from,
             to,
-            strength: relationData.strength,
+            decaySpeed:relationData.decaySpeed,
+            changes:relationData.data,
             id: relationDoc.id
           };
           
@@ -384,7 +460,7 @@ export default {
           console.error(error);
         });
     },
-    async getNetworkFromNode(nodeId, level = 0) {
+    async getNetworkFromNode(nodeId, level = 1) {
       let relations = await this.getRelations(nodeId);
       let nodes = [];
 

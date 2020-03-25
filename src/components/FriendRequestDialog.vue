@@ -21,24 +21,24 @@
         ></v-slider>
       </div>
 
-      <v-card-actions>
-        <v-spacer></v-spacer>
-
-        <v-btn
-          color="green darken-1"
-          text
+      <v-card-actions class="text-center">
+        <div class="mx-auto mt-2 mb-5">
+          <v-btn
+           color="indigo lighten-1"
+           text
           @click="$emit('close-dialog')"
         >
           No, thanks.
         </v-btn>
 
         <v-btn
-          color="green darken-1"
-          text
+          color="indigo lighten-1"
+          class="white--text"
           @click="$emit('accept-friendship')"
         >
-          Agree
+          Accept Friendship
         </v-btn>
+        </div>
       </v-card-actions>
     </v-sheet>
 </template>
