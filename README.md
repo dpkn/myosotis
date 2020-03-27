@@ -1,4 +1,4 @@
-# connection
+# Myosotis
 
 ## Project setup
 ```
